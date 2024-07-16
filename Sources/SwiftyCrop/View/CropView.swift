@@ -1,5 +1,7 @@
 import SwiftUI
 
+import Montage
+
 struct CropView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: CropViewModel
@@ -8,7 +10,6 @@ struct CropView: View {
     private let maskShape: MaskShape
     private let configuration: SwiftyCropConfiguration
     private let onComplete: (UIImage?) -> Void
-    private let localizableTableName: String
 
     init(
         image: UIImage,
@@ -26,7 +27,6 @@ struct CropView: View {
                 maxMagnificationScale: configuration.maxMagnificationScale
             )
         )
-        localizableTableName = "Localizable"
     }
 
     var body: some View {
@@ -74,11 +74,33 @@ struct CropView: View {
             }
 
         VStack {
-            Text("interaction_instructions", tableName: localizableTableName, bundle: .module)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(.white)
-                .padding(.top, 30)
-                .zIndex(1)
+            HStack(alignment: .center) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image.montage(.close)
+                        .resizable()
+                        .frame(width: 24, height: 24)
+                }
+                .foregroundStyle(Color.alias(.staticWhite))
+
+                Spacer()
+                
+                Text("이미지 편집")
+                    .montage(variant: .headline2, weight: .bold, color: .staticWhite)
+                
+                Spacer()
+
+                Button {
+                    onComplete(cropImage())
+                    dismiss()
+                } label: {
+                    Text("완료")
+                        .montage(variant: .headline2, weight: .regular, color: .staticWhite)
+                }
+                .foregroundStyle(Color.alias(.staticWhite))
+            }
+            .padding()
 
             ZStack {
                 Image(uiImage: image)
@@ -97,42 +119,40 @@ struct CropView: View {
                         }
                     )
 
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .rotationEffect(viewModel.angle)
-                    .scaleEffect(viewModel.scale)
-                    .offset(viewModel.offset)
-                    .mask(
-                        MaskShapeView(maskShape: maskShape)
-                            .frame(width: viewModel.maskRadius * 2, height: viewModel.maskRadius * 2)
-                    )
+                ZStack {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .rotationEffect(viewModel.angle)
+                        .scaleEffect(viewModel.scale)
+                        .offset(viewModel.offset)
+                        .mask(
+                            MaskShapeView(maskShape: maskShape)
+                                .frame(
+                                    width: viewModel.maskRadius * 2,
+                                    height: viewModel.maskRadius * 2
+                                )
+                        )
+                    
+                    Rectangle()
+                        .stroke(Color.alias(.inverseLabel), lineWidth: 1)
+                        .frame(
+                            width: viewModel.maskRadius * 2,
+                            height: viewModel.maskRadius * 2
+                        )
+                    
+                    DashedCornerRectangle()
+                        .stroke(Color.alias(.inverseLabel))
+                        .frame(
+                            width: viewModel.maskRadius * 2,
+                            height: viewModel.maskRadius * 2
+                        )
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .simultaneousGesture(magnificationGesture)
             .simultaneousGesture(dragGesture)
             .simultaneousGesture(configuration.rotateImage ? rotationGesture : nil)
-
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Text("cancel_button", tableName: localizableTableName, bundle: .module)
-                }
-                .foregroundColor(.white)
-
-                Spacer()
-
-                Button {
-                    onComplete(cropImage())
-                    dismiss()
-                } label: {
-                    Text("save_button", tableName: localizableTableName, bundle: .module)
-                }
-                .foregroundColor(.white)
-            }
-            .frame(maxWidth: .infinity, alignment: .bottom)
-            .padding()
         }
         .background(.black)
     }
@@ -167,6 +187,37 @@ struct CropView: View {
                     Rectangle()
                 }
             }
+        }
+    }
+    
+    private struct DashedCornerRectangle: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            
+            let dashLength: CGFloat = 20.0
+            let lineWidth: CGFloat = 2.0
+
+            // Top left corner
+            path.move(to: CGPoint(x: 0, y: dashLength))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: dashLength, y: 0))
+            
+            // Top right corner
+            path.move(to: CGPoint(x: rect.width - dashLength, y: 0))
+            path.addLine(to: CGPoint(x: rect.width, y: 0))
+            path.addLine(to: CGPoint(x: rect.width, y: dashLength))
+            
+            // Bottom right corner
+            path.move(to: CGPoint(x: rect.width, y: rect.height - dashLength))
+            path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+            path.addLine(to: CGPoint(x: rect.width - dashLength, y: rect.height))
+            
+            // Bottom left corner
+            path.move(to: CGPoint(x: dashLength, y: rect.height))
+            path.addLine(to: CGPoint(x: 0, y: rect.height))
+            path.addLine(to: CGPoint(x: 0, y: rect.height - dashLength))
+            
+            return path.strokedPath(StrokeStyle(lineWidth: lineWidth))
         }
     }
 }
