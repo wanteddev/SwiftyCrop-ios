@@ -10,17 +10,20 @@ struct CropView: View {
     private let maskShape: MaskShape
     private let configuration: SwiftyCropConfiguration
     private let onComplete: (UIImage?) -> Void
+    private let onCancel: (() -> Void)?
 
     init(
         image: UIImage,
         maskShape: MaskShape,
         configuration: SwiftyCropConfiguration,
-        onComplete: @escaping (UIImage?) -> Void
+        onComplete: @escaping (UIImage?) -> Void,
+        onCancel: (() -> Void)? = nil
     ) {
         self.image = image
         self.maskShape = maskShape
         self.configuration = configuration
         self.onComplete = onComplete
+        self.onCancel = onCancel
         _viewModel = StateObject(
             wrappedValue: CropViewModel(
                 maskRadius: configuration.maskRadius,
@@ -76,6 +79,7 @@ struct CropView: View {
         VStack {
             HStack(alignment: .center) {
                 Button {
+                    onCancel?()
                     dismiss()
                 } label: {
                     Image.montage(.close)
